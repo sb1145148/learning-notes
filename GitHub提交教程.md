@@ -503,7 +503,7 @@ git rm --cached 文件名
 | `Please tell me who you are` | 没配身份 | `git config --global user.name/email` |
 | `fatal: not a git repository` | 不在仓库目录 | `cd` 到有 `.git` 的目录 |
 | `src refspec main does not match any` | 还没 commit 就 push | 先 `git commit` |
-| `failed to push some refs` | 远端有你没有的提交 | `git pull --rebase` 再 push |
+| `failed to push some refs` | 远端有你没有的提交 | `git pull --rebase` 再 push（详见第 9.5 章） |
 | `Authentication failed` | 凭据失效 | `cmdkey /delete:git:https://github.com` 重来 |
 | `Repository not found` | 用户名/仓库名写错 | `git remote -v` 检查 |
 | `nothing to commit` | 没有改动 / 没 add | 先改文件或 `git add` |
@@ -512,7 +512,155 @@ git rm --cached 文件名
 
 ---
 
+## 第 9.5 章 · push 被拒绝（`fetch first`）
+
+**这是最常见、也最容易被误解的错误。**
+
+### 报错长什么样
+
+```
+To https://github.com/你的用户名/learning-notes.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to '...'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+```
+
+### 为什么会这样
+
+**远端多了一个你本地没有的提交。** 常见来源：
+
+| 来源 | 例子 |
+| --- | --- |
+| 在 GitHub 网页上直接改文件 | 用 `Add file` 加了 README |
+| 网页上加了 LICENSE | 许可证选择器自动生成的提交 |
+| 另一台设备 push 过 | 手机、另一台电脑 |
+| 你开了两个目录 | 同一个仓库在两处改了不同东西 |
+
+**用图看：**
+
+```
+远端：  A ── B ── C        ← 网页上加了 C
+本地：  A ── B ── D        ← 本地提交了 D
+
+git push 想让远端变成 A─B─D
+但 D 的位置已经被 C 占了
+→ 拒绝（怕覆盖 C，让 C 消失）
+```
+
+**git 的默认态度是「不猜」：宁可拒绝，也不悄悄覆盖。**
+
+### 修复：先合并，再推送
+
+```powershell
+git fetch origin
+git log --oneline origin/main -3
+```
+
+**先看看远端到底多了什么**，确认是不是你自己改的。
+
+然后：
+
+```powershell
+git pull --rebase
+```
+
+**两种结果：**
+
+#### 情况 A：没有冲突（大多数）
+
+```
+Successfully rebased and updated refs/heads/main.
+```
+
+```powershell
+git push
+```
+
+**完成。**
+
+#### 情况 B：报冲突
+
+```
+CONFLICT (content): Merge conflict in README.md
+error: could not apply abc1234...
+```
+
+**说明两边改了同一个文件。**
+
+**① 打开冲突文件，会看到：**
+
+```text
+<<<<<<< HEAD
+你本地的改动
+=======
+远端（网页上）的改动
+>>>>>>> origin/main
+```
+
+**② 手工决定保留什么**（可以两边都留，也可以只留一边），**删掉那三行标记**。
+
+**③ 继续：**
+
+```powershell
+git add .
+```
+
+```powershell
+git rebase --continue
+```
+
+**如果弹出编辑器（vim）：** 输入 `:wq` 回车退出。
+
+**④ 推送：**
+
+```powershell
+git push
+```
+
+### 搞乱了想重来
+
+```powershell
+git rebase --abort
+```
+
+**回到 pull 之前的状态**，然后重新判断。
+
+### `--rebase` 和默认的区别
+
+| 命令 | 结果 |
+| --- | --- |
+| `git pull`（默认 merge） | `A─B─C─M`（多一个合并提交，历史分叉） |
+| `git pull --rebase` | `A─B─C─D`（一条直线，更干净） |
+
+**个人项目统一用 `--rebase`。**
+
+### 怎么预防
+
+**养成一个习惯：动手前先拉。**
+
+```powershell
+git pull
+```
+
+**尤其在这些时候：**
+
+- 刚在网页上改过文件
+- 换了台设备
+- 隔了几天没提交
+
+**另一个原则：同一份文件，别同时在网页和本地改。**
+
+### 一句话
+
+> **`rejected (fetch first)` 不是"你错了"，是"有人先到"——先合并，再排队。**
+
+---
+
 ## 第 10 章 · 图形界面（不想打命令时）
+
 
 **VS Code 里也有完整流程：**
 
@@ -546,6 +694,7 @@ git remote add origin <URL>
 git push -u origin main
 
 # —— 日常 ——
+git pull                   # 动手前先拉（尤其网页上改过）
 git status
 git add .
 git commit -m "说明"
