@@ -659,6 +659,104 @@ git pull
 
 ---
 
+## 第 9.6 章 · rebase 卡住了怎么办
+
+**`git status` 突然显示这些话，说明仓库卡在一个"未完成的 rebase"里：**
+
+```text
+You are currently editing a commit while rebasing branch 'main' on 'd408aea'.
+  (use "git commit --amend" to amend the current commit)
+  (use "git rebase --continue" once you are satisfied with your changes)
+
+nothing to commit, working tree clean
+```
+
+**或者：**
+
+```text
+interactive rebase in progress; onto 1a2b3c4
+```
+
+**这时候你看到的是「旧状态」——上一次 rebase 中途被打断了。**
+
+### 三个出口（选一个，不要放着不管）
+
+| 命令 | 做什么 | 什么时候用 |
+| --- | --- | --- |
+| `git rebase --continue` | 继续往下执行 | 你已经解决完冲突/改完了 |
+| `git rebase --quit` | **清掉 rebase 状态，但提交和分支都不动** | 你发现状态是残留的、HEAD 已经是对的 |
+| `git rebase --abort` | 回到 rebase 开始前的状态 | 整个 rebase 不想要了 |
+
+### 最关键的一条：怎么选
+
+**先看提交还在不在远端：**
+
+```powershell
+git rev-parse HEAD
+git branch -r --contains HEAD
+```
+
+**如果输出里有 `origin/main`，说明当前提交已经在远端了——那就不该用 `--abort`（它会把分支退回去，让你本地丢掉这些提交）。**
+
+**这种情况用：**
+
+```powershell
+git rebase --quit
+```
+
+**它只清除"rebase 进行中"这个状态标记，一个提交都不动。**
+
+### 一个真实例子
+
+```powershell
+# 卡住时看到的
+You are currently editing a commit while rebasing branch 'main' on 'd408aea'
+
+# 先确认提交在远端
+git branch -r --contains HEAD
+#   origin/HEAD -> origin/main,  origin/main     ← 在！
+
+# 所以用 --quit，而不是 --abort
+git rebase --quit
+
+# 结果：分支名回到 main，提交全在，工作区 clean
+```
+
+### 卡住时不要做的事
+
+| ❌ 动作 | 后果 |
+| --- | --- |
+| 继续 `git commit` | 会往临时 HEAD 上叠提交，可能重复或丢失 |
+| 直接 `git push` | 被拒，或推错分支 |
+| `git switch` 别的分支 | git 会拒绝（uncommitted changes / rebase in progress） |
+| 手删 `.git/rebase-merge` 目录 | 能用，但不如 `--quit` 干净 |
+
+**规则：先处理 rebase 状态，再做任何提交操作。**
+
+### 怎么避免走到这一步
+
+**rebase 中途打断的两大原因：**
+
+1. **冲突没解决完就关掉了终端**
+2. **冲突解决后忘了 `git add` 就 `--continue`**
+
+**正确流程：**
+
+```powershell
+git pull --rebase
+# 如果有冲突
+#   → 手工改文件，删掉 <<<<<<< ======= >>>>>>> 标记
+git add .
+git rebase --continue
+# 如果又冲突，重复上面
+```
+
+### 一句话
+
+> **rebase 卡住不是坏了，是暂停了——`--continue` 继续、`--quit` 收摊、`--abort` 重来，三个总得选一个。**
+
+---
+
 ## 第 10 章 · 图形界面（不想打命令时）
 
 
@@ -710,6 +808,11 @@ git restore --staged <file>     # 取消暂存
 git checkout -- <file>          # 丢弃修改（危险）
 git reset --soft HEAD~1         # 撤销提交，保留改动
 git revert HEAD                 # 反向提交（已 push 后）
+
+# —— rebase 卡住时，三选一 ——
+git rebase --continue           # 继续
+git rebase --quit               # 只清状态，提交不动（HEAD 已对时用这个）
+git rebase --abort              # 整体退回 rebase 之前
 ```
 
 ---
