@@ -1,0 +1,12 @@
+﻿# 系统文件
+Thumbs.db
+desktop.ini
+
+# 编辑器
+.vscode/
+*.swp
+
+# 凭据（永远不要提交）
+*.token
+.env
+.dsh-backup-token
