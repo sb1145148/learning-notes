@@ -166,6 +166,68 @@ lines.append(f"| {a['name']} | {fans:,} | {d} | {a['card'].get('archive_count') 
 
 所以 Windows 路径要么双写 `"C:\\temp\\new"`，要么 `r"C:\temp\new"`，要么干脆用 `os.path.join` —— 这正是 `daily.py` 里到处写 `os.path.join(BASE, "snapshots")` 的原因。
 
+**这课算是过了，但送你一个更实用的动作**
+
+- 以后遇到“看起来有东西但看不见”的时候，用 repr()：
+
+```python
+s = "C:\temp\new"
+print(s)          # C:	emp
+                  # ew
+print(repr(s))    # 'C:\temp\new'      ← 反斜杠原形毕露
+print(len(s))     # 9                  ← 不是 13
+```
+
+- repr() 是“给程序员看的字符串”，print() 是“给人看的字符串”。
+
+> 排查路径、换行、全角空格这类问题时，先 repr() 一下 —— 你能立刻看出那个“空格”到底是空格、制表符，还是不换行空格（\xa0）
+
+*（\xa0 这个坑你以后一定会遇到：从网页复制来的文本里，它长得和空格一模一样，但 str.strip() 不会去掉它。）*
+
+```text
+>>> repr(r"c:\temp\new")
+"'c:\\\\temp\\\\new'"
+```
+
+**这正是 repr(repr(s)) 的样子：**
+
+```text
+s = r"c:\temp\new"        ← 11 个字符，2 个真反斜杠
+
+print(repr(s))            →  'c:\\temp\\new'
+REPL 里直接敲 repr(s)      →  "'c:\\\\temp\\\\new'"   ← 你看到的就是这个
+```
+
+**为什么多了一层**
+
+| 你敲的 | REPL 做的事 |
+| :---: | :---: |
+| s	| 显示 repr(s) → 'c:\\temp\\new' |
+| repr(s) | 它返回的是一个字符串，REPL 为了显示它，又套了一次 repr → "'c:\\\\temp\\\\new'" |
+
+> REPL 显示任何值都用 repr。 你调用 repr() 得到的是字符串，REPL 于是再 repr 一遍 —— 反斜杠就翻了两次。
+
+**数字对得上**
+
+```text
+len(s)         = 11     ← 2 个反斜杠 + 9 个普通字符
+len(repr(s))   = 15     ← 11 + 2 个引号 + 2 个反斜杠翻倍
+```
+
+**所以以后想看清内容，这样敲**
+
+```python
+>>> print(repr(s))       # 加 print，就只套一层
+c:\\temp\\new
+```
+
+**记住这条：**
+
+> 在 REPL 里查 repr，用 print(repr(x))。 直接敲 repr(x)，你会看到“被转义两次”的假象，越看越糊涂。
+
+
+这个现象有名字：**二次 repr（double repr）**。第一次遇到的人常以为自己把字符串搞坏了 —— 其实它一直是好的。
+
 ---
 
 ## 第 3 课 · 列表
