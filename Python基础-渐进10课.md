@@ -802,6 +802,120 @@ json.dump(cur, open(snap, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
 ---
 
+## 预习 · `import` 是怎么工作的（第 10 课前置）
+
+> 同样提前加：第 5、6 课之后会遇到越来越多 import，先弄清它到底做了什么。
+
+### 一句话
+
+> **Python 自带一大堆「工具箱」（叫模块），`import` 就是「我要用其中某几个」。**
+
+```python
+import datetime          # 我要用「日期时间」这个工具箱
+```
+
+**不 import 就用 → 名字根本不存在：**
+
+```text
+NameError: name 'datetime' is not defined
+```
+
+### 自己代码开头那几行，都是标准库
+
+```python
+import glob, json, os, re, sys, time, random, datetime, statistics
+import urllib.parse, urllib.request
+import socket as _socket
+```
+
+| 模块 | 用来干嘛 |
+| --- | --- |
+| `glob` | 找文件（`glob.glob("snapshot-*.json")`） |
+| `json` | 读写 JSON |
+| `os` | 路径、目录 |
+| `re` | 正则（去掉标题里的 HTML 标签） |
+| `sys` | 命令行参数、退出 |
+| `time` | 时间戳、`sleep` |
+| `random` | 随机延时 |
+| `datetime` | 日期时间 |
+| `statistics` | 中位数 |
+| `urllib.request` | 发 HTTP 请求 |
+| `socket`（别名 `_socket`） | 底层网络 |
+
+**全是 Python 自带**（标准库），不用安装。
+
+### 三种写法
+
+**① `import 模块` → 用的时候带前缀**
+
+```python
+import datetime
+datetime.datetime.now()      # 要写两遍 datetime
+```
+
+好处：一眼看出它从哪个模块来，不会重名。
+
+**② `from 模块 import 名字` → 直接用**
+
+```python
+from datetime import timedelta
+timedelta(hours=8)           # 不用前缀
+```
+
+好处：少打字。坏处：名字从哪来不明显，两个模块有同名东西时会打架。
+
+**③ `import 模块 as 别名`**
+
+```python
+import socket as _socket
+_socket.AF_INET
+```
+
+自己代码里这么写，是因为后面要**替换（patch）** `socket.getaddrinfo` —— 别名短，且明确表示「内部在用」。
+
+### 一个容易忘的副作用：import 会执行对方的顶层代码
+
+做个小实验：`mytool.py` 里有一句顶层 `print`，`main.py` 里 `import mytool`。
+
+```text
+★ 我被 import 了，所以这句话执行了     ← 对方文件的 print 跑了
+调用 mytool.greet('鲸鱼娘') = 你好，鲸鱼娘
+```
+
+**真实例子是 `fill.py`：**
+
+```python
+import daily          # 这一行把 daily.py 的顶层代码全执行了一遍
+```
+
+所以 `fill.py` 里那个会崩的符号没崩 —— 它白拿了 `daily.py` 顶部那段「把输出编码切成 UTF-8」的修复。
+
+> **`import` 一个文件 ≠ 只是「引用」，它会真的跑一遍那个文件。**
+
+### 三种来源，用法完全一样
+
+| 来源 | 例子 | 要不要装 |
+| --- | --- | --- |
+| **标准库** | `import json` | 不用，自带 |
+| **第三方** | `import requests` | 要 `pip install requests` |
+| **自己写的文件** | `import daily` | 不用，同目录即可 |
+
+### 为什么都写在开头
+
+**约定（PEP 8）**：一眼能看到「这个文件依赖什么」。
+技术上不必须（可以写在函数里，叫局部导入），但那样读代码得翻到那一行才知道依赖。
+
+### 一个技巧：读别人的代码，先看 import
+
+```
+import 里有什么  →  这个文件大概在干什么
+```
+
+`daily.py` 的 import 里有 `json` `urllib` `datetime` `statistics` ——
+**猜也猜得到：发请求、取 JSON、算统计、写报告。**
+
+---
+
 ## 第 10 课 · 异常与 `import`
 
 **目标**：出错时不让整个脚本死掉；知道 `import` 会执行对方文件。
