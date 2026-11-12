@@ -526,6 +526,125 @@ if mid not in prev3[-1]:
 
 ---
 
+## 预习 · 名字是怎么定义的（第 7 课前置）
+
+> 这一节是提前加进来的：学第 5、6 课的时候会遇到越来越多函数名，
+> 先弄清「`def` 后面那个词是谁定的、为什么叫这个」，后面会轻松很多。
+
+### `def` 后面的词，是你自己起的标签
+
+```python
+def pct(a, b):
+    ...
+```
+
+翻译成人话：
+
+> **"以后我叫 `pct`，指的就是下面这几行代码。"**
+
+**Python 完全不认识 `pct` 这个词** —— 它只负责把名字和那段代码绑在一起。
+
+证据：换成中文名，照样跑。
+
+```python
+def 算百分比(新值, 旧值):
+    if not 旧值:
+        return "—"
+    return round(100.0 * (新值 - 旧值) / 旧值, 1)
+
+算百分比(415009, 413586)   # → 0.3
+```
+
+### 先分清三种「名字」
+
+| 写法 | 叫什么 | 例子 |
+| --- | --- | --- |
+| `def` **后面的** | **函数名** | `pct`、`now_cst`、`api` |
+| `def pct(` **括号里的** | **参数名** | `a`、`b`、`mid` |
+| `fans = ...` **左边的** | **变量名** | `fans`、`total`、`lines` |
+
+> `fans` 不是函数名 —— 它在代码里是变量/参数。
+
+**三种名字的规则完全一样。**
+
+### 硬规则（违反了就报错）
+
+**① 不能是关键字**
+
+```python
+def for(x): pass      # SyntaxError: invalid syntax
+```
+
+关键字：`if` `for` `while` `def` `return` `class` `import` `None` `True` …
+
+**② 不能用数字开头**
+
+```python
+def 2nd(x): pass      # SyntaxError
+def _2nd(x): pass     # 可以（下划线开头）
+```
+
+**③ 只能用字母、数字、下划线**（中文也允许，但不推荐）
+
+### 软规则：别用内置名字（会出事）
+
+```python
+def list(x):
+    return "我把 list 抢了"
+
+list("abc")      # → "我把 list 抢了"   内置的 list() 被覆盖了
+```
+
+**语法完全合法，但整个程序里所有 `list()` 都变成你那个** —— 非常危险。
+
+真实教训：
+
+```python
+today_inc = fans_today - prev3[2][min][1]     # min 打成了内置函数 min
+KeyError: <built-in function min>
+```
+
+因为 `min` 是"合法名字"，所以它直到运行时才炸，而且报错很难懂。
+
+### 为什么用「这些具体词」
+
+这些词不是 Python 规定的，是**人挑的**，目的是让人一眼看懂：
+
+| 名字 | 全称 | 为什么用这个 |
+| --- | --- | --- |
+| `pct` | **p**er**c**en**t** | 算百分比 |
+| `now_cst` | now + China Standard Time | 现在（东八区） |
+| `api` | Application Programming Interface | 这里指「发一次 API 请求」 |
+| `get_card` | get + card | **拿**名片 |
+| `load_snapshots` | load + snapshots | **加载**快照 |
+| `_cool_down` | 下划线 + cool down | **内部的**冷却函数 |
+
+**三条命名习惯**
+
+1. **小写 + 下划线**：`now_cst`，不是 `nowCST`
+2. **动词开头 = 做事的**（`get_` / `load_` / `build_`）；**名词 = 存东西的变量**（`fans` / `mid` / `lines`）
+3. **一个下划线开头 = 内部用**（`_ipv4_only` / `_cool_down`），告诉别人"这不是对外接口"
+
+### 一个实用技巧：把函数名读成一句话
+
+```python
+vids = get_videos(c.get("name") or name, mid, max_pages=max_pages, expected=expected)
+        ↑                ↑                ↑
+      拿视频       用现名或旧名          这个 mid
+```
+
+**读成**："拿视频（用名字或旧名，这个 mid，最多翻 N 页，按投稿数估算）"
+
+> **一句话能读通，说明命名是好的。读不通，就说明该改名了。**
+
+### 一句话
+
+> **`def` 后面的词是你自己起的标签。**
+> **硬规则只有三条**（不能是关键字、不能数字开头、只用字母数字下划线），
+> **剩下的全是约定** —— 唯一标准是：**别人（包括三个月后的自己）读一眼就懂。**
+
+---
+
 ## 第 7 课 · 函数
 
 **目标**：把一段逻辑包起来，能调用、能返回。
